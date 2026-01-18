@@ -292,22 +292,39 @@ melted_data_with_preds <- model_data_with_preds %>%
   ) %>%
 select(time, values, okres, model, preds)
 
+melted_data_with_preds <- melted_data_with_preds %>%
+  mutate(okres_2 = factor(okres, 
+                        levels = c("przed epidemią", "w trakcie epidemii", "po epidemii"),
+                        labels = c("przed epidemią (zbiór treningowy)", 
+                                   "w trakcie epidemii", "po epidemii")))
+
+melted_data_with_preds <- melted_data_with_preds %>%
+  mutate(model = factor(model, 
+                          levels = c("sarima_preds", "sarima_auto_preds", "sarima_auto_max_preds"),
+                          labels = c(paste(expression(SARIMA(0,1,1)(0,1,1)[12]), " (ekspercka)"), 
+                                     paste(expression(SARIMA(4,1,2)(2,1,1)[12]), " (auto.arima)"),
+                                     paste(expression(SARIMA(1,1,0)(1,1,0)[12]), " (auto.arima_max)"))))
+
 
 ggplot(melted_data_with_preds) +
   geom_line(aes(x = time, y = values)) +
   geom_line(aes(x = time, y = preds, color = model)) +
-  facet_wrap(.~okres, scale = "free", nrow=3)
+  scale_color_discrete(labels = label_parse()) +
+  facet_wrap(.~okres_2, scale = "free", nrow=3) +
+  xlab("Data") +
+  ylab("Liczba pasażerów") +
+  ggtitle("Porównanie modeli SARIMA uczonych bez okresu pandemicznego w poszczególnych okresach")
 
 
 ggplot(melted_data_with_preds) +
   geom_line(aes(x = time, y = values)) +
   geom_line(aes(x = time, y = preds, color = model)) +
-  facet_wrap(.~model, scale = "free", nrow=3)
+  scale_color_discrete(labels = label_parse()) +
+  facet_wrap(.~model, scale = "free", nrow=3, labeller = label_parsed)+
+  xlab("Data") +
+  ylab("Liczba pasażerów") +
+  ggtitle("Porównanie modeli SARIMA uczonych bez okresu pandemicznego na całym zbiorze danych")
 
 
-ggplot(melted_data_with_preds) +
-  geom_line(aes(x = time, y = values)) +
-  geom_line(aes(x = time, y = preds, color = model)) +
-  facet_wrap(.~model + okres, scale = "free", nrow=3)
 
                                                      
