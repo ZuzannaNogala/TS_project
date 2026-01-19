@@ -1,7 +1,7 @@
 # Wybór SARIMY EKSPERCKO do danych zimputowanych 
 source("set_up.R")
 
-# train_imp_covid wygenerowany w pliku TS_loty 
+# train_imp_covid 
 train_df <- model_data %>%
   filter(okres != "po epidemii") %>%
   mutate(log_imp_values = train_imp_covid)

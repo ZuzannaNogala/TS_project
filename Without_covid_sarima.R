@@ -1,24 +1,13 @@
 # Analiza szeregu z wykluczeniem okresu pandemicznego  2020-03-01 - 2022-05-01
 # "Przewozy pasażerskie w transporcie lotniczym według kraju sprawozdającego - Polska"
 
+source("set_up.R")
+
 library(dplyr)
 library(ggplot2)
 library(TSstudio)
 library(forecast)
 library(lmtest)
-
-rmse <- function(real, pred) sqrt(mean((as.numeric(real) - as.numeric(pred)) ^ 2))
-
-# Dane
-model_data <- clean_data %>%
-  mutate(
-    okres = case_when(
-      time < covid_start ~ "przed epidemią",
-      time > covid_end ~ "po epidemii",
-      .default = "w trakcie epidemii"
-    ),
-    log_values = log(values)
-  )
 
 # log - do stabilizacji wariancji
 ts(cbind("oryginalne wartości" = model_data$values,
@@ -180,6 +169,12 @@ after_covid_start_set <- model_data %>%
   select(log_values) %>%
   unlist() %>% 
   ts(start = c(2020, 3), frequency = 12)
+
+after_covid_set <- model_data %>%
+  filter(time > covid_end) %>%
+  select(log_values) %>%
+  unlist() %>% 
+  ts(start = c(2022, 6), frequency = 12)
 
 # Utworzenie modelu SARIMA(0,1,1)(0,1,1)_12 i predykcje
 

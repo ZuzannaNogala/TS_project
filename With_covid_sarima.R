@@ -1,5 +1,6 @@
 # Analiza szeregu bez wykluczeniem okresu pandemicznego 
 # "Przewozy pasażerskie w transporcie lotniczym według kraju sprawozdającego - Polska"
+source("set_up.R")
 
 with_covid_set <- model_data %>%
   filter(time <= covid_end) %>%
@@ -167,7 +168,7 @@ mod_results <-  apply(candidats_grid, 1, function(params){
   #                  ses_order = c(0, 1, 1))
   
   fit <- exp(as.numeric(fitted(mod)))
-  rmse_fit <- rmse(exp(train_df$log_imp_values), fit)
+  rmse_fit <- rmse(exp(train_ts), fit)
   
   preds_obj <- predict(mod, n.ahead = h_ahead)
   preds <- exp(as.numeric(preds_obj$pred))
@@ -180,12 +181,12 @@ mod_results <-  apply(candidats_grid, 1, function(params){
        "rmse_pred" = rmse_pred)})
 
 # Podusmowanie wyników
-names(results) <- c("113", "211", "311")
+names(mod_results) <- c("113", "211", "311")
 
 models_aft_preds <- model_data %>% 
-  mutate(covid_sarima_113_preds = c(results[["113"]]$fit, results[["113"]]$preds),
-         covid_sarima_211_preds = c(results[["211"]]$fit, results[["211"]]$preds),
-         covid_sarima_311_preds = c(results[["311"]]$fit, results[["311"]]$preds))
+  mutate(covid_sarima_113_preds = c(mod_results[["113"]]$fit, mod_results[["113"]]$preds),
+         covid_sarima_211_preds = c(mod_results[["211"]]$fit, mod_results[["211"]]$preds),
+         covid_sarima_311_preds = c(mod_results[["311"]]$fit, mod_results[["311"]]$preds))
 
 
 melted_data_with_preds_aft <- models_aft_preds %>%
@@ -217,8 +218,8 @@ melted_data_with_preds_aft <- melted_data_with_preds_aft %>%
 
 # Podsumowanie RMSE
 
-fit_vals <- sapply(results, function(x) x$rmse_fit)
-pred_vals <- sapply(results, function(x) x$rmse_pred)
+fit_vals <- sapply(mod_results, function(x) x$rmse_fit)
+pred_vals <- sapply(mod_results, function(x) x$rmse_pred)
 
 rmse_table <- data.frame(
   model_id = names(fit_vals),
