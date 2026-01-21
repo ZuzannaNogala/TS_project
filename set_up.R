@@ -82,10 +82,10 @@ perform_analysis <- function(ts_data, nonses_order, ses_order){
   mod <- ts_data %>% Arima(order= nonses_order, seasonal= ses_order)
   
   mod %>% residuals() %>% 
-    ggtsdisplay(main = paste("Analiza residuów modelu", mod_name)) +  # ocena residuów
+    ggtsdisplay(main = paste("Analiza residuów modelu", mod_name)) # ocena residuów
     
     cat("\n--- Kryteria informacyjne ---\n")
-  print(mod %>% glance() %>% select(AIC, BIC)) # ocena kryterii 
+  print(mod %>%{ data.frame(AIC = .$aic, BIC = .$bic) }) # ocena kryterii 
   
   cat("\n--- Testy istotności współczynników ---\n")
   print(mod %>% coeftest()) # istotnność
