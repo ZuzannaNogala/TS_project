@@ -31,7 +31,9 @@ clean_data <- dane_raw %>%
 
 ggplot(clean_data) +
   geom_line(aes(x = time, y = values)) +
-  ggtitle("Przewozy pasażerskie w transporcie lotniczym według kraju sprawozdającego - Polska")
+  labs(x = "Data", y = "Liczba pasażerów") +
+  ggtitle("Przewozy pasażerskie w transporcie lotniczym w Polsce") +
+  theme_light()
 
 start_date <- c(2004, 1)
 log_data_ts <- ts(log(clean_data$values), start = start_date, deltat = 1/12) #box-cox
@@ -67,12 +69,12 @@ model_data <- clean_data %>%
 bound_obs <- which(model_data$time %in% c(covid_start, covid_end))
 bound_obs <- c(bound_obs, bound_obs[1] - 1, bound_obs[2] + 1)
 
-ggplot(model_data, aes(x = time, y = log_values)) +
+ggplot(model_data, aes(x = time, y = values)) +
   geom_line(data = cbind(model_data[sort(bound_obs),],
                          group = rep(1:2, each = 2)),
             aes(group = group), linetype = "dashed") +
   geom_line(aes(color = okres)) +
-  ggtitle("Przewozy pasażerskie w transporcie lotniczym według kraju sprawozdającego - Polska")
+  labs(x = "Data", y = "Liczba pasażerów")
 
 train_data <- model_data %>%
   filter(okres != "po epidemii")
@@ -87,7 +89,7 @@ train_no_covid_data <- train_data %>%
 
 train_no_covid <- na.omit(train_no_covid_data$log_values)
 
-# imputacja - stl ???
+# imputacja stl
 covid_obs_num <- length(train_with_covid) - length(train_no_covid)
 
 train_no_covid_ts <- ts(train_no_covid, start = start_date, , deltat = 1/12)
@@ -107,8 +109,8 @@ train_sets_ts <- setNames(lapply(train_sets, function(train){
 
 models <- mapply(function(train_ts, train){
     list(
-      arima = auto.arima(train_ts),
-      max_arima = auto.arima(train_ts, max.p = 2, max.q = 2),
+      sarima = auto.arima(train_ts),
+      max_sarima = auto.arima(train_ts, max.p = 2, max.q = 2),
       prophet = prophet(data.frame(
         ds = train_data$time[1:length(train)],
         y = train
@@ -139,6 +141,29 @@ ggplot(models_train_fit_df, aes(x = time, y = fitted, color = model)) +
   geom_line(aes(y = passengers), color = "black") +
   geom_line() +
   facet_wrap(~ rodzaj_zbioru, nrow = 3)
+
+# analiza dopasowania - reszty, istotne współczynniki
+resid_plots <- lapply(models, function(models_lst){
+  x <- models_lst$sarima$x
+  resid_df <- data.frame(
+    residuals = c(sapply(models_lst[1:2], resid),
+                  predict(models_lst$prophet)$yhat - x),
+    model = rep(names(models_lst), each = length(x)),
+    id = 1:length(x)
+  )
+  ggplot(resid_df, aes(x = id, y = residuals)) +
+    geom_point(size = 0.5) +
+    geom_hline(yintercept = 0) +
+    facet_wrap(~ model, ncol = 1)
+})
+
+resid_plots$`z epidemią`
+resid_plots$imputacja
+resid_plots$`bez epidemii`
+
+lapply(models, function(models_lst){
+  lapply(models_lst[1:2], coeftest)
+})
 
 # test
 test_data <- model_data %>%
