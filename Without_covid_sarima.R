@@ -9,6 +9,17 @@ library(TSstudio)
 library(forecast)
 library(lmtest)
 
+# Dane
+model_data <- clean_data %>%
+  mutate(
+    okres = case_when(
+      time < covid_start ~ "przed epidemią",
+      time > covid_end ~ "po epidemii",
+      .default = "w trakcie epidemii"
+    ),
+    log_values = log(values)
+  )
+
 # log - do stabilizacji wariancji
 ts(cbind("oryginalne wartości" = model_data$values,
       'zlogarytmowane wartości'= model_data$log_values)) %>% 
@@ -39,7 +50,7 @@ model_data %>%
   ts(frequency = 12) %>%
   diff(lag = 12) %>%
   diff() %>%
-  ggtsdisplay(main="Lotnicze przewozy pasażerskie w Polsce - Szereg zróżnicowany sezonowo + diff(lag=1)")
+  ggtsdisplay(main="Szereg po usunięciu trendu i sezonowości (podwójnie zróżnicowany)")
 
 # Analiza wykresu
 
@@ -170,12 +181,6 @@ after_covid_start_set <- model_data %>%
   unlist() %>% 
   ts(start = c(2020, 3), frequency = 12)
 
-after_covid_set <- model_data %>%
-  filter(time > covid_end) %>%
-  select(log_values) %>%
-  unlist() %>% 
-  ts(start = c(2022, 6), frequency = 12)
-
 # Utworzenie modelu SARIMA(0,1,1)(0,1,1)_12 i predykcje
 
 SARIMA_own <- Arima(bef_cov_set, order=c(0,1,1), seasonal=c(0,1,1))
@@ -188,7 +193,7 @@ covid_preds <- after_preds[1:(model_data %>% filter(okres == "w trakcie epidemii
 after_covid_preds <- after_preds[(model_data %>% filter(okres == "w trakcie epidemii") %>% nrow() + 1):length(after_covid_start_set)]
 
 model_data_with_preds <- model_data %>%
-  mutate(sarima_preds = round(c(exp(fitted(SARIMA_own)), after_preds), 0))
+  mutate(sarima_preds = c(exp(fitted(SARIMA_own)), after_preds))
 
 
 # Imputacja danych covidowych (oryginalna skala)
@@ -214,7 +219,7 @@ covid_preds_auto <- after_preds_auto[1:(model_data %>% filter(okres == "w trakci
 after_covid_preds_auto <- after_preds_auto[(model_data %>% filter(okres == "w trakcie epidemii") %>% nrow() + 1):length(after_covid_start_set)]
 
 model_data_with_preds <- model_data_with_preds %>%
-  mutate(sarima_auto_preds = round(c(exp(fitted(SARIMA_auto)), after_preds_auto), 0))
+  mutate(sarima_auto_preds = c(exp(fitted(SARIMA_auto)), after_preds_auto))
 
 
 # Imputacja danych covidowych (normalne values)
@@ -244,7 +249,7 @@ covid_preds_auto_max <- after_preds_auto_max[1:(model_data %>% filter(okres == "
 after_covid_preds_auto_max <- after_preds_auto_max[(model_data %>% filter(okres == "w trakcie epidemii") %>% nrow() + 1):length(after_covid_start_set)]
 
 model_data_with_preds <- model_data_with_preds %>%
-  mutate(sarima_auto_max_preds = round(c(exp(fitted(SARIMA_auto_max)), after_preds_auto), 0))
+  mutate(sarima_auto_max_preds = c(exp(fitted(SARIMA_auto_max)), after_preds_auto_max))
 
 
 
