@@ -8,6 +8,7 @@ library(forecast)
 library(prophet)
 library(lmtest)
 library(broom)
+library(patchwork)
 
 ## Wczytanie danych:
 
@@ -63,12 +64,20 @@ train_no_covid <- na.omit(train_no_covid_data$log_values)
 
 covid_obs_num <- length(train_with_covid) - length(train_no_covid)
 
-train_no_covid_ts <- ts(train_no_covid, start = c(2004, 1), , deltat = 1/12)
+train_no_covid_ts <- ts(train_no_covid, start = c(2004, 1), deltat = 1/12)
 no_covid_stl <- stl(train_no_covid_ts, s.window = "per")
 
 covid_imp_obs <- forecast(no_covid_stl, h = covid_obs_num)$mean
 
 train_imp_covid <- c(train_no_covid, covid_imp_obs)
+
+train_sets <- list(train_with_covid, train_imp_covid, train_no_covid)
+train_sets_ts <- setNames(lapply(train_sets, function(train){
+  ts(train, start = c(2004, 1), deltat = 1/12) 
+}), c("z epidemią", "imputacja", "bez epidemii"))
+
+test_data <- model_data %>%
+  filter(okres == "po epidemii")
 
 # Funkcje
 

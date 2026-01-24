@@ -1,48 +1,91 @@
-library(dplyr)
-library(tidyr)
-library(stringr)
-library(ggplot2)
-library(TSstudio)
-library(forecast)
-library(prophet)
-library(lmtest)
+source("set_up.R")
 
 
+# Definicja tabeli z informacjami o covid
+
+covid_period <- model_data %>%
+  filter(okres == "w trakcie epidemii") %>%
+  summarise(ds = min(time), 
+            lower_window = 0, 
+            upper_window = as.numeric(max(time) - min(time))) %>%
+  mutate(holiday = "lockdown")
+
+
+# Model Prophet
 prophet_model <- prophet(df = model_data %>% 
-                           filter(okres == "przed epidemią") %>% select(ds = time, y=log_values))
-# change points - gdzie cos sie zmienia (spropbac z okresem pandemicznym) 
+                           filter(okres != "po epidemii") %>% select(ds = time, y=values),
+                         changepoints = model_data %>% 
+                           filter(okres == "w trakcie epidemii") %>% pull(time),
+                         yearly.seasonality = TRUE,
+                         seasonality.mode = "multiplicative",
+                         holidays = covid_period)
 
 
-future <- make_future_dataframe(prophet_model, periods = model_data %>% 
-                                  filter(okres == "w trakcie epidemii") %>% nrow(), freq = "month")
+# Prognozy
+future <- make_future_dataframe(prophet_model, 
+                                periods = model_data %>% filter(okres == "po epidemii") %>% nrow(), 
+                                freq = "month")
+
 forecast <- predict(prophet_model, future)
 
 fitted <- forecast %>%
-  filter(ds < covid_start) %>%
+  filter(as.Date(ds) <= covid_end) %>%
   select(yhat) %>%
   ts(start = c(2004, 1), frequency = 12)
 
 covid_preds_prophet <- forecast %>%
-  filter(ds >= covid_start & ds < covid_end) %>%
+  filter(as.Date(ds) > covid_end) %>%
   select(yhat) %>%
-  ts(start = c(2020, 3), frequency = 12)
+  ts(start = c(2022, 6), frequency = 12)
 
-mean((fitted - model_data %>% 
-        filter(okres == "przed epidemią") %>% select(log_values) %>% ts())^2)
-
-sqrt(mean((exp(fitted$yhat) - model_data %>% 
-        filter(okres == "przed epidemią") %>% select(log_values) %>% exp() %>% unlist())^2))
+# RMSE
+rmse(fitted, model_data %>% filter(okres != "po epidemii") %>%pull(values))
+rmse(covid_preds_prophet, model_data %>% filter(okres == "po epidemii") %>%pull(values))
 
 
+# Wykres podstawowy
+plot(prophet_model, forecast)+ 
+  add_changepoints_to_plot(prophet_model) +
+  geom_line(data = model_data, aes(x = as.POSIXct(time), y = values))
 
 
+# Wykres zaawansowany
+model_data_2 <- model_data %>%
+  mutate("zbiór" = ifelse(okres == "po epidemii", "zbiór testowy", "zbiór treningowy"))
 
+split_date <- as.POSIXct("2022-05-01")
 
-mean((forecast$yhat - model_data %>% 
-        filter(okres == "w trakcie epidemii") %>% select(log_values) %>% unlist())^2)
-mean((forecast$yhat - model_data %>% 
-        filter(okres == "w trakcie epidemii") %>% select(log_values) %>% unlist())^2)
+bg_data <- data.frame(
+  okres = c("Zbiór treningowy", "Zbiór testowy"),
+  xmin = c(min(forecast$ds), split_date),
+  xmax = c(split_date, max(forecast$ds))
+)
 
-prophet_plot_components(prophet_model, forecast)
-
-fitted(prophet_model)
+ggplot() +
+  geom_rect(data = bg_data, 
+            aes(xmin = xmin, xmax = xmax, ymin = -Inf, ymax = Inf, fill = okres), 
+            alpha = 0.1) +
+  
+  geom_ribbon(data = subset(forecast, ds >= split_date),
+              aes(x = ds, ymin = yhat_lower, ymax = yhat_upper), 
+              fill = "#0072B2", alpha = 0.2) +
+  
+  geom_line(data = model_data_2, 
+            aes(x = as.POSIXct(time), y = values, color = "Prawdziwe dane"), 
+            linewidth = 0.7) +
+  
+  geom_line(data = forecast, 
+            aes(x = ds, y = yhat, color = "Predykcja"), 
+            linewidth = 1.1) +
+  
+  scale_color_manual(name = "Dane", 
+                     values = c("Prawdziwe dane" = "grey40", "Predykcja" = "#0072B2")) +
+  
+  scale_fill_manual(name = "Okresy", 
+                    values = c("Zbiór treningowy" = "red", "Zbiór testowy" = "steelblue")) +
+  
+  geom_vline(xintercept = split_date, linetype = "dashed", color = "grey30") +
+  theme_minimal() +
+  labs(title = "Porównanie wartości rzeczywistych z prognozą modelu Prophet uwzględniającą wpływ COVID-19",
+       x = "Data", y = "Liczba pasażerów") +
+  theme(legend.position = "bottom", plot.title = element_text(hjust = 0.5))
