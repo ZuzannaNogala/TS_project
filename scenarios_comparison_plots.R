@@ -58,7 +58,7 @@ ggplot() +
 
 # Scenariusz 2: porównanie modeli epidemią
 
-forecast_with_cov_auto <- predict(prophet_models$`z epidemią`, data.frame(ds = model_data$time))
+forecast_with_cov_auto <- predict(no_covid_prophet, data.frame(ds = model_data$time))
 forecast_with_cov <- predict(prophet_model, data.frame(ds = model_data$time))
 
 auto_sarima_and_prophet_df <- model_data_2 %>%

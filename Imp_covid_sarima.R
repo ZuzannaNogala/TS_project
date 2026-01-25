@@ -231,10 +231,10 @@ melted_data_imp_preds <- melted_data_imp_preds %>%
   mutate(model = factor(model, 
                              levels = c("imp_sarima_0001_preds", "imp_sarima_1001_preds",
                                         "imp_sarima_0101_preds", "imp_sarima_1101_preds"),
-                             labels = c(expression(SARIMA(0,1,0)(0,1,1)[12]), 
-                                        expression(SARIMA(1,1,0)(0,1,1)[12]),
-                                        expression(SARIMA(0,1,1)(0,1,1)[12]),
-                                        expression(SARIMA(1,1,1)(0,1,1)[12]))))
+                             labels = c("SARIMA(0,1,0)(0,1,1)[12]", 
+                                        "SARIMA(1,1,0)(0,1,1)[12]",
+                                        "SARIMA(0,1,1)(0,1,1)[12]",
+                                        "SARIMA(1,1,1)(0,1,1)[12]")))
 
 # Wyniki rmse
 fit_vals_imp <- sapply(mod_results, function(x) x$rmse_fit)
