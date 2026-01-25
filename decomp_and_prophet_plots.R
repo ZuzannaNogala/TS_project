@@ -29,7 +29,7 @@ bg_data <- data.frame(
   xmax = c(split_date, max(forecast$ds))
 )
 
-forecast <- predict(prophet_models$`z epidemią`, data.frame(ds = model_data$time))
+forecast <- predict(no_covid_prophet, data.frame(ds = model_data$time))
 
 ggplot() +
   geom_rect(data = bg_data, 
@@ -37,7 +37,7 @@ ggplot() +
             alpha = 0.1) +
   
   geom_ribbon(data = subset(forecast, ds >= split_date),
-              aes(x = ds, ymin = exp(yhat_lower), ymax = exp(yhat_upper)), 
+              aes(x = ds, ymin = yhat_lower, ymax = yhat_upper), 
               fill = "#0072B2", alpha = 0.2) +
   
   geom_line(data = model_data_2, 
@@ -45,7 +45,7 @@ ggplot() +
             linewidth = 0.7) +
   
   geom_line(data = forecast, 
-            aes(x = ds, y = exp(yhat), color = "Predykcja"), 
+            aes(x = ds, y = yhat, color = "Predykcja"), 
             linewidth = 1.1) +
   
   scale_color_manual(name = "Dane", 
