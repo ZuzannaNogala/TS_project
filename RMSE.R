@@ -4,11 +4,15 @@
 
 # Scenariusz 1:
 
+model_data <- model_data %>%
+  mutate(imp_values = ifelse(okres != "po epidemii", exp(train_imp_covid), values))
+
 N <- nrow(model_data)
 true_vals_train <- model_data %>% filter(okres == "przed epidemią") %>% pull(values)
 true_vals_cov <- model_data %>% filter(okres == "w trakcie epidemii") %>% pull(values)
 
 true_vals_train_with_cov <- model_data %>% filter(okres != "po epidemii") %>% pull(values)
+true_vals_train_with_cov_imp <- model_data %>% filter(okres != "po epidemii") %>% pull(imp_values)
 true_vals_test <- model_data %>% filter(okres == "po epidemii") %>% pull(values)
 
 forecast_without_cov_auto <- predict(prophet_models$`bez epidemii`, data.frame(ds = model_data$time))
@@ -44,14 +48,14 @@ rmse_s2_df <- data.frame(
   rmse_fit = c(
     rmse_table %>% filter(model_id == "211") %>% pull(rmse_fit),
     apply(sarima_models_fit$`z epidemią`[1:length(true_vals_train_with_cov), ], 2, rmse, true_vals_train_with_cov),
-    rmse(forecast_with_cov_auto[1:length(true_vals_train_with_cov), "yhat"], true_vals_train_with_cov),
+    rmse(exp(forecast_with_cov_auto[1:length(true_vals_train_with_cov), "yhat"]), true_vals_train_with_cov),
     rmse(forecast_with_cov[1:length(true_vals_train_with_cov), "yhat"], true_vals_train_with_cov)
     ),
   rmse_covid = matrix(NA, nrow = 5, ncol =1),
   rmse_test = c(
     rmse_table %>% filter(model_id == "211") %>% pull(rmse_pred),
     apply(sarima_models_fit$`z epidemią`[(length(true_vals_train_with_cov) + 1):N, ], 2, rmse, true_vals_test),
-    rmse(forecast_with_cov_auto[(length(true_vals_train_with_cov) + 1):N, "yhat"], true_vals_test),
+    rmse(exp(forecast_with_cov_auto[(length(true_vals_train_with_cov) + 1):N, "yhat"]), true_vals_test),
     rmse(forecast_with_cov[(length(true_vals_train_with_cov) + 1):N, "yhat"], true_vals_test)))
 
 
@@ -63,15 +67,15 @@ rmse_s3_df <- data.frame(
   model = c("sarima_111_011", "sarima_auto", "sarima_max", "prophet_auto"),
   scenario = rep(3, 4),
   rmse_fit = c(
-    rmse_table_imp %>% filter(model_id == "1101") %>% pull(rmse_fit),
-    apply(sarima_models_fit$imputacja[1:length(true_vals_train_with_cov), ], 2, rmse, true_vals_train_with_cov),
-    rmse(forecast_imp_cov_auto[1:length(true_vals_train_with_cov), "yhat"], true_vals_train_with_cov)
+    rmse_table_imp %>% filter(model_id == "1101") %>% pull(rmse_imp_fit),
+    apply(sarima_models_fit$imputacja[1:length(true_vals_train_with_cov), ], 2, rmse, true_vals_train_with_cov_imp),
+    rmse(exp(forecast_imp_cov_auto[1:length(true_vals_train_with_cov), "yhat"]), true_vals_train_with_cov_imp)
     ),
   rmse_covid = matrix(NA, nrow = 4, ncol =1),
   rmse_test = c(
     rmse_table_imp %>% filter(model_id == "1101") %>% pull(rmse_pred),
     apply(sarima_models_fit$imputacja[(length(true_vals_train_with_cov) + 1):N, ], 2, rmse, true_vals_test),
-    rmse(forecast_imp_cov_auto[(length(true_vals_train_with_cov) + 1):N, "yhat"], true_vals_test)))
+    rmse(exp(forecast_imp_cov_auto[(length(true_vals_train_with_cov) + 1):N, "yhat"]), true_vals_test)))
 
 
 # Combine:

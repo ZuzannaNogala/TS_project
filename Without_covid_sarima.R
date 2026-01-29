@@ -181,6 +181,12 @@ after_covid_start_set <- model_data %>%
   unlist() %>% 
   ts(start = c(2020, 3), frequency = 12)
 
+after_covid_set <- model_data %>%
+  filter(time > covid_end) %>%
+  select(log_values) %>%
+  unlist() %>% 
+  ts(start = c(2022, 6), frequency = 12)
+
 # Utworzenie modelu SARIMA(0,1,1)(0,1,1)_12 i predykcje
 
 SARIMA_own <- Arima(bef_cov_set, order=c(0,1,1), seasonal=c(0,1,1))
@@ -195,91 +201,14 @@ after_covid_preds <- after_preds[(model_data %>% filter(okres == "w trakcie epid
 model_data_with_preds <- model_data %>%
   mutate(sarima_preds = c(exp(fitted(SARIMA_own)), after_preds))
 
-
-# Imputacja danych covidowych (oryginalna skala)
-ggplot(model_data_with_preds %>% filter(okres != "po epidemii")) +
-  geom_line(aes(x = time, y = values)) +
-  geom_line(aes(x = time, y = sarima_preds), col = "blue")
-
-# Co po okresie covidowym, gdy zastosowaliśmy imputację danych ? (oryginalna skala)
-ggplot(model_data_with_preds) +
-  geom_line(aes(x = time, y = values)) +
-  geom_line(aes(x = time, y = sarima_preds), col = "blue")
-
-
-# 1b. Model AUTO.SARIMA z komponentą sezonową
-SARIMA_auto <- auto.arima(bef_cov_set, seasonal = TRUE) # (4,1,2)(2,1,1) - bardzo skomplikowany model
-
-SARIMA_auto %>% summary()
-# AIC=-523.42   AICc=-522.12   BIC=-491.43 - gorsze niz wybrany ekspercko
-SARIMA_auto %>% coeftest() # prawie nic nie istotne
-
-after_preds_auto <- exp(predict(SARIMA_auto, n.ahead = length(after_covid_start_set))$pred)
-covid_preds_auto <- after_preds_auto[1:(model_data %>% filter(okres == "w trakcie epidemii") %>% nrow())]
-after_covid_preds_auto <- after_preds_auto[(model_data %>% filter(okres == "w trakcie epidemii") %>% nrow() + 1):length(after_covid_start_set)]
-
-model_data_with_preds <- model_data_with_preds %>%
-  mutate(sarima_auto_preds = c(exp(fitted(SARIMA_auto)), after_preds_auto))
-
-
-# Imputacja danych covidowych (normalne values)
-ggplot(model_data_with_preds %>% filter(okres != "po epidemii")) +
-  geom_line(aes(x = time, y = values)) +
-  geom_line(aes(x = time, y = sarima_auto_preds), col = "blue")
-
-# Co po okresie covidowym, gdy zastosowaliśmy imputację danych ? (normalne)
-ggplot(model_data_with_preds) +
-  geom_line(aes(x = time, y = values)) +
-  geom_line(aes(x = time, y = sarima_auto_preds), col = "blue")
-
-
-# 1c. Model AUTO.SARIMA z komponentą sezonową z max
-SARIMA_auto_max <- auto.arima(bef_cov_set, 
-                              max.p = 1,
-                              max.q = 2,
-                              max.P = 1,
-                              max.Q = 2,
-                              seasonal = TRUE) # (1,1,0)(1,1,0) 
-SARIMA_auto_max%>% summary()
-# AIC=-511.88   AICc=-511.74   BIC=-502.28
-SARIMA_auto_max %>% coeftest() # istotne
-
-after_preds_auto_max <- exp(predict(SARIMA_auto_max, n.ahead = length(after_covid_start_set))$pred)
-covid_preds_auto_max <- after_preds_auto_max[1:(model_data %>% filter(okres == "w trakcie epidemii") %>% nrow())]
-after_covid_preds_auto_max <- after_preds_auto_max[(model_data %>% filter(okres == "w trakcie epidemii") %>% nrow() + 1):length(after_covid_start_set)]
-
-model_data_with_preds <- model_data_with_preds %>%
-  mutate(sarima_auto_max_preds = c(exp(fitted(SARIMA_auto_max)), after_preds_auto_max))
-
-
-
-
-# Imputacja danych covidowych (log values)
-ggplot(model_data_with_preds %>% filter(okres != "po epidemii")) +
-  geom_line(aes(x = time, y = values)) +
-  geom_line(aes(x = time, y = sarima_auto_max_preds), col = "blue")
-
-# Co po okresie covidowym, gdy zastosowaliśmy imputację danych ? (normalne)
-ggplot(model_data_with_preds) +
-  geom_line(aes(x = time, y = values)) +
-  geom_line(aes(x = time, y = sarima_auto_max_preds), col = "blue")
-
 # 2. RMSE
 
-with_imp_summary_df <- data.frame("model" = c("sarima_own", "sarima_auto", "sarima_max"),
-                                  "rmse_fit" = unlist(lapply(list(SARIMA_own, SARIMA_auto, SARIMA_auto_max), 
-                                                             function(mod) rmse(exp(bef_cov_set), round(exp(fitted(mod)), 0)))),
-                                  "rmse_cov" = c(rmse(exp(in_cov_set), covid_preds), 
-                                                 rmse(exp(in_cov_set), covid_preds_auto), 
-                                                 rmse(exp(in_cov_set), covid_preds_auto_max)),
-                                  "rmse_after_cov" = c(rmse(exp(after_covid_set), after_covid_preds), 
-                                                       rmse(exp(after_covid_set), after_covid_preds_auto), 
-                                                       rmse(exp(after_covid_set), after_covid_preds_auto_max)),
-                                  "rmse_after_start_cov" = c(rmse(exp(after_covid_start_set), after_preds), 
-                                                             rmse(exp(after_covid_start_set), after_preds_auto), 
-                                                             rmse(exp(after_covid_start_set), after_preds_auto_max)),
-                                  "AIC" = c(SARIMA_own %>% AIC(), SARIMA_auto %>% AIC(), SARIMA_auto_max %>% AIC()),
-                                  "BIC" = c(SARIMA_own %>% BIC(), SARIMA_auto %>% BIC(), SARIMA_auto_max %>% BIC()))
+with_imp_summary_df <- data.frame("model" = "sarima_own",
+                                  "rmse_fit" = rmse(exp(bef_cov_set), round(exp(fitted(SARIMA_own)), 0)),
+                                  "rmse_cov" =rmse(exp(in_cov_set), covid_preds),
+                                  "rmse_after_cov" = rmse(exp(after_covid_set), after_covid_preds),
+                                  "AIC" = SARIMA_own %>% AIC(),
+                                  "BIC" = SARIMA_own %>% BIC())
 
 
 # 3. Wykresy podsumowujące
@@ -300,10 +229,8 @@ melted_data_with_preds <- melted_data_with_preds %>%
 
 melted_data_with_preds <- melted_data_with_preds %>%
   mutate(model = factor(model, 
-                          levels = c("sarima_preds", "sarima_auto_preds", "sarima_auto_max_preds"),
-                          labels = c(paste(expression(SARIMA(0,1,1)(0,1,1)[12]), " (ekspercka)"), 
-                                     paste(expression(SARIMA(4,1,2)(2,1,1)[12]), " (auto.arima)"),
-                                     paste(expression(SARIMA(1,1,0)(1,1,0)[12]), " (auto.arima_max)"))))
+                          levels = "sarima_preds",
+                          labels = paste(expression(SARIMA(0,1,1)(0,1,1)[12]), " (ekspercka)")))
 
 
 ggplot(melted_data_with_preds) +
