@@ -42,8 +42,12 @@ ggplot(fit_df, aes(x = time)) +
                 ymin = -Inf, ymax = Inf, fill = set),
             inherit.aes = FALSE, alpha = 0.1) +
   geom_line(data = plt_model_data, aes(y = values, group = okres,
-                                       color = "prawdziwe dane"),
-            linewidth = 0.6) +
+                                       color = "prawdziwe dane"), linewidth = 0.6) +
+  # Przedział ufności
+  geom_ribbon(data = subset(fit_df, time >= "2022-05-01"),
+              aes(x = time, ymin = yhat_lower, ymax = yhat_upper),
+              fill = "#0072B2", alpha = 0.2) +
+  
   geom_line(aes(y = yhat, color = "predykcja"), linewidth = 0.6) +
   geom_vline(xintercept = as.Date(covid_end)+31, linetype = "dashed") +
   labs(x = "Data", y = "Liczba pasażerów",
