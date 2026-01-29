@@ -8,12 +8,12 @@ melted_data_with_preds <- melted_data_with_preds %>%
   mutate(okres = factor(okres, 
                         levels = c("przed epidemią", "w trakcie epidemii","po epidemii")))
 
-forecast_without_cov <- predict(prophet_models$`bez epidemii`, data.frame(ds = model_data$time))
+forecast_without_cov <- predict(no_covid_prophet, data.frame(ds = model_data$time))
 
 auto_sarima_and_prophet_df <- model_data_2 %>%
   mutate("auto_sarima" = sarima_models_fit$`bez epidemii`[, 1],
          "auto_max_sarima" = sarima_models_fit$`bez epidemii`[, 2],
-         "prophet" = exp(forecast_without_cov$yhat),
+         "prophet" = forecast_without_cov$yhat,
          okres = factor(okres, levels = c("przed epidemią", "w trakcie epidemii","po epidemii")))
 
 melted_auto_sarima_and_prophet_df  <- auto_sarima_and_prophet_df %>%
@@ -26,7 +26,7 @@ melted_auto_sarima_and_prophet_df  <- auto_sarima_and_prophet_df %>%
 
 ggplot() +
   geom_line(data = model_data %>% filter(okres == "po epidemii"), 
-            aes(x = as.Date(time), y = values)) +
+            aes(x = as.Date(time), y = values), linewidth = 0.7) +
   geom_line(data = melted_data_with_preds %>% 
               filter(okres == "po epidemii" & model == paste(expression(SARIMA(0,1,1)(0,1,1)[12]), " (ekspercka)")),
             aes(x = as.Date(time), y = preds, color = model)) +
@@ -34,26 +34,30 @@ ggplot() +
             aes(x = as.Date(time), y = preds, col = model)) +
   scale_color_discrete(labels = label_parse()) +
   xlab("Data") +
+  theme_light() +
   ylab("Liczba pasażerów") +
-  ggtitle("Porównanie modeli uczonych na okresie przed pandemią")+
-  theme(plot.title = element_text(hjust = 0.5, size = 12))
+  ggtitle("Porównanie prognoz postpandemicznych modeli uczonych na okresie przed pandemią")+
+  theme(plot.title = element_text(hjust = 0.5, size = 15), 
+        legend.position = "bottom", legend.text = element_text(size = 12))
 
 
 
 ggplot() +
   geom_line(data = model_data_2, 
-            aes(x = as.Date(time), y = values)) +
+            aes(x = as.Date(time), y = values), linewidth = 0.7) +
   geom_line(data = melted_data_with_preds%>% 
               filter(model == paste(expression(SARIMA(0,1,1)(0,1,1)[12]), " (ekspercka)")),
             aes(x = as.Date(time), y = preds, color = model)) +
   geom_line(data = melted_auto_sarima_and_prophet_df,
             aes(x = as.Date(time), y = preds, col = model)) +
   scale_color_discrete(labels = label_parse()) +
-  facet_wrap(.~okres, scale = "free", nrow = 3) +
+  #facet_wrap(.~okres, scale = "free", nrow = 3) +
   xlab("Data") +
   ylab("Liczba pasażerów") +
+  theme_light() +
   ggtitle("Porównanie modeli uczonych na okresie przed pandemią") +
-  theme(plot.title = element_text(hjust = 0.5, size = 12))
+  theme(plot.title = element_text(hjust = 0.5, size = 15),
+        legend.position = "bottom", legend.text = element_text(size = 12))
 
 
 # Scenariusz 2: porównanie modeli epidemią
@@ -101,8 +105,10 @@ ggplot() +
   scale_color_discrete(labels = label_parse()) +
   xlab("Data") +
   ylab("Liczba pasażerów") +
+  theme_light() +
   ggtitle("Porównanie modeli uczonych z okresem pandemicznym")+
-  theme(plot.title = element_text(hjust = 0.5, size = 12))
+  theme(plot.title = element_text(hjust = 0.5, size = 15),
+        legend.position = "bottom", legend.text = element_text(size = 12))
 
 
 ggplot() +
@@ -114,11 +120,13 @@ ggplot() +
   geom_line(data = melted_auto_sarima_and_prophet_df,
             aes(x = as.Date(time), y = preds, col = model)) +
   scale_color_discrete(labels = label_parse()) +
-  facet_wrap(.~okres_2, scale = "free", nrow = 3) +
+  #facet_wrap(.~okres_2, scale = "free", nrow = 3) +
   xlab("Data") +
   ylab("Liczba pasażerów") +
+  theme_light() +
   ggtitle("Porównanie modeli uczonych z okresem pandemicznym") +
-  theme(plot.title = element_text(hjust = 0.5, size = 12))
+  theme(plot.title = element_text(hjust = 0.5, size = 15),
+        legend.position = "bottom", legend.text = element_text(size = 12))
 
 
 # Scenariusz 3: sarima z imputacją
@@ -163,23 +171,27 @@ ggplot() +
   scale_color_discrete(labels = label_parse()) +
   xlab("Data") +
   ylab("Liczba pasażerów") +
+  theme_minimal() +
   ggtitle("Porównanie modeli uczonych z imputowanym okresem pandemicznym")+
-  theme(plot.title = element_text(hjust = 0.5, size = 12))
+  theme(plot.title = element_text(hjust = 0.5, size = 15),
+        legend.position = "bottom", legend.text = element_text(size = 12))
 
 ggplot() +
-  geom_line(data = model_data_2 %>% filter(!is.na(okres_2)), 
+  geom_line(data = model_data_2, 
             aes(x = as.Date(time), y = values)) +
   geom_line(data = melted_data_imp_preds %>% 
-              filter(model == "SARIMA(1,1,1)(0,1,1)[12]" & !is.na(okres_2)),
+              filter(model == "SARIMA(1,1,1)(0,1,1)[12]"),
             aes(x = as.Date(time), y = preds, color = model)) +
-  geom_line(data = melted_auto_sarima_and_prophet_df%>% filter(!is.na(okres_2)),
+  geom_line(data = melted_auto_sarima_and_prophet_df,
             aes(x = as.Date(time), y = preds, col = model)) +
   scale_color_discrete(labels = label_parse()) +
-  facet_wrap(.~okres_2, scale = "free", nrow = 3) +
+  #facet_wrap(.~okres_2, scale = "free", nrow = 3) +
   xlab("Data") +
   ylab("Liczba pasażerów") +
-  ggtitle("Porównanie modeli SARIMA uczonych z imputacją okresu pandemii") +
-  theme(plot.title = element_text(hjust = 0.5, size = 12))
+  theme_light() +
+  ggtitle("Porównanie modeli uczonych z imputacją okresu pandemii") +
+  theme(plot.title = element_text(hjust = 0.5, size = 15),
+        legend.position = "bottom", legend.text = element_text(size = 12))
 
 
 # Porównanie scenariuszy
@@ -196,8 +208,8 @@ future_split_date <- as.POSIXct("2025-08-01")
 
 bg_data <- data.frame(
   okres = c("Zbiór treningowy", "Zbiór testowy", "Przyszłość"),
-  xmin = c(min(forecast$ds), split_date, future_split_date),
-  xmax = c(split_date, max(forecast$ds), as.POSIXct("2030-08-01"))
+  xmin = c(min(forecast_best_model_2$ds), split_date, future_split_date),
+  xmax = c(split_date, max(forecast_best_model_2 $ds), as.POSIXct("2030-08-01"))
 )
 
 #. Prophet skalibrowany 

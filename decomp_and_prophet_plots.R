@@ -23,13 +23,13 @@ model_data_2 <- model_data %>%
 
 split_date <- as.POSIXct("2022-05-01")
 
+forecast <- predict(no_covid_prophet, data.frame(ds = model_data$time))
+
 bg_data <- data.frame(
   okres = c("Zbiór treningowy", "Zbiór testowy"),
   xmin = c(min(forecast$ds), split_date),
   xmax = c(split_date, max(forecast$ds))
 )
-
-forecast <- predict(no_covid_prophet, data.frame(ds = model_data$time))
 
 ggplot() +
   geom_rect(data = bg_data, 
