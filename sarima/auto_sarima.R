@@ -11,20 +11,35 @@ sarima_models <- mapply(function(train_ts, train){
 
 # analiza dopasowania - reszty, istotne współczynniki
 sarima_resid_plots <- lapply(sarima_models, function(models_lst){
-  x <- models_lst$sarima$x
-  resid_df <- sapply(models_lst, resid) %>%
-    as.data.frame() %>%
-    pivot_longer(cols = everything(), names_to = "model",
-                 values_to = "residuals") %>%
-    mutate(date = rep(as.Date(x), length(models_lst)),
-           model = case_when(model == "sarima" ~ "auto SARIMA",
-                             .default = "max SARIMA"))
-  ggplot(resid_df, aes(x = date, xend = date, y = 0, yend = residuals)) +
-    geom_segment() +
-    geom_hline(yintercept = 0) +
-    facet_wrap(~ model, nrow = 1) +
-    labs(x = "Data", y = "Reszta") +
-    theme_light()
+  # x <- models_lst$sarima$x
+  # resid_df <- sapply(models_lst, resid) %>%
+  #   as.data.frame() %>%
+  #   pivot_longer(cols = everything(), names_to = "model",
+  #                values_to = "residuals") %>%
+  #   mutate(date = rep(as.Date(x), length(models_lst)),
+  #          model = case_when(model == "sarima" ~ "auto SARIMA",
+  #                            .default = "max SARIMA"))
+  # ggplot(resid_df, aes(x = date, xend = date, y = 0, yend = residuals)) +
+  #   geom_segment() +
+  #   geom_hline(yintercept = 0) +
+  #   facet_wrap(~ model, nrow = 1) +
+  #   labs(x = "Data", y = "Reszta") +
+  #   theme_light()
+  
+  plts <- mapply(function(model, model_name){
+    list(
+      ggAcf(model$residuals) +
+        ggtitle(paste(model_name, "- ACF")) +
+        theme_light() +
+        theme(plot.title = element_text(size = 13, hjust = 0.5)),
+      ggPacf(model$residuals) +
+        ggtitle(paste(model_name, "- PACF")) +
+        theme_light() +
+        theme(plot.title = element_text(size = 13, hjust = 0.5))
+    )
+  }, models_lst, c("auto SARIMA", "max SARIMA"))
+  
+  wrap_plots(plts)
 })
 
 sarima_resid_plots$`z epidemią`
@@ -67,7 +82,8 @@ sarima_models_plt <- mapply(function(fit_matrix, train){
     geom_line(data = model_data, aes(group = okres)) +
     geom_vline(xintercept = as.Date(covid_end), linetype = "dashed") +
     labs(x = "Data", y = "Liczba pasażerów",
-         title = "Dopasowanie modeli na zbiorze treningowym i testowym") +
+         title = "Predykcje automatycznych modeli SARIMA na zbiorze treningowym
+         i testowym") +
     theme_light()
     
   pred_df <- fit_df %>%
@@ -77,8 +93,10 @@ sarima_models_plt <- mapply(function(fit_matrix, train){
     geom_line(aes(color = model)) +
     geom_line(data = test_data) +
     labs(x = "Data", y = "Liczba pasażerów",
-         title = "Dopasowanie modelu na zbiorze testowym") +
+         title = "Predykcje automatycznych modeli SARIMA na zbiorze testowym") +
   theme_light()
   
-  plt1 / plt2
+  plt1 / plt2 +
+    plot_layout(guides = "collect") &
+    theme(legend.position = 'bottom')
 }, sarima_models_fit, train_sets, SIMPLIFY = FALSE)

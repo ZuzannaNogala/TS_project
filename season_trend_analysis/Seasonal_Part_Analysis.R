@@ -7,8 +7,7 @@ ggplot(model_data, aes(x = time, y = values)) +
             aes(group = group), linetype = "dashed") +
   geom_line(aes(color = okres)) +
   ggtitle("Przewozy pasażerskie w transporcie lotniczym według kraju sprawozdającego - Polska")
-
-
+ 
 # Porównanie rozkładów liczby pasażerów dla poszczególnych miesięcy przed i po epidemii
 # Problem duża wariancja pomiędzy danymi starymi (2004 - 2010) a nowymi (2017+) przed pandemią
 model_data %>%

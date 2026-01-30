@@ -97,6 +97,6 @@ perform_analysis <- function(ts_data, nonses_order, ses_order){
   print(mod %>%{ data.frame(AIC = .$aic, BIC = .$bic) }) # ocena kryterii 
   
   cat("\n--- Testy istotności współczynników ---\n")
-  print(mod %>% coeftest()) # istotnność
+  print(mod %>% coeftest()) # istotność
 }
 

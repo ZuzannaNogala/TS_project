@@ -19,7 +19,23 @@ ggplot(model_data, aes(x = time, y = values)) +
   geom_line(aes(color = okres)) +
   labs(x = "Data", y = "Liczba pasażerów",
        title = "Podział danych na trzy okresy") +
-  theme_light()
+  theme_light() +
+  theme(legend.position = "bottom")
+
+# Dekompozycja 
+ts_data <- ts(model_data$values, frequency = 12, start = c(2004, 1))
+decomposed <- decompose(ts_data, type = "multiplicative")
+
+autoplot(decomposed, range.bars = FALSE) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5)) +
+  labs(
+    title = "Dekompozycja liczby pasażerów transportu lotniczego w Polsce",
+    subtitle = "Model multiplikatywny",
+    x = "Rok",
+    y = "Liczba pasażerów"
+  )
 
 # imputation plot
 ggplot(data.frame(val = exp(train_imp_covid),
