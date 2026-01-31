@@ -11,21 +11,6 @@ sarima_models <- mapply(function(train_ts, train){
 
 # analiza dopasowania - reszty, istotne współczynniki
 sarima_resid_plots <- lapply(sarima_models, function(models_lst){
-  # x <- models_lst$sarima$x
-  # resid_df <- sapply(models_lst, resid) %>%
-  #   as.data.frame() %>%
-  #   pivot_longer(cols = everything(), names_to = "model",
-  #                values_to = "residuals") %>%
-  #   mutate(date = rep(as.Date(x), length(models_lst)),
-  #          model = case_when(model == "sarima" ~ "auto SARIMA",
-  #                            .default = "max SARIMA"))
-  # ggplot(resid_df, aes(x = date, xend = date, y = 0, yend = residuals)) +
-  #   geom_segment() +
-  #   geom_hline(yintercept = 0) +
-  #   facet_wrap(~ model, nrow = 1) +
-  #   labs(x = "Data", y = "Reszta") +
-  #   theme_light()
-  
   plts <- mapply(function(model, model_name){
     list(
       ggAcf(model$residuals) +

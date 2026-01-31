@@ -8,7 +8,8 @@ melted_data_with_preds <- melted_data_with_preds %>%
   mutate(okres = factor(okres, 
                         levels = c("przed epidemią", "w trakcie epidemii","po epidemii")))
 
-forecast_without_cov <- predict(no_covid_prophet, data.frame(ds = model_data$time))
+forecast_without_cov <- predict(prophet_models$`bez epidemii`,
+                                data.frame(ds = model_data$time))
 
 auto_sarima_and_prophet_df <- model_data_2 %>%
   mutate("auto_sarima" = sarima_models_fit$`bez epidemii`[, 1],
@@ -68,7 +69,7 @@ forecast_with_cov <- predict(prophet_model, data.frame(ds = model_data$time))
 auto_sarima_and_prophet_df <- model_data_2 %>%
   mutate("auto_sarima" = sarima_models_fit$`z epidemią`[, 1],
          "auto_max_sarima" = sarima_models_fit$`z epidemią`[, 2],
-         "prophet_auto" = exp(forecast_with_cov_auto$yhat), 
+         "prophet_auto" = forecast_with_cov_auto$yhat, 
          "prophet" = forecast_with_cov$yhat,
          okres_2 = ifelse(okres %in% c("przed epidemią", "w trakcie epidemii"), 
                           "Przed i w trakcie epidemii", 
@@ -136,7 +137,7 @@ forecast_imp <- predict(prophet_models$imputacja, data.frame(ds = model_data$tim
 auto_sarima_and_prophet_df <- model_data %>%
   mutate("auto_sarima" = sarima_models_fit$imputacja[, 1],
          "auto_max_sarima" = sarima_models_fit$imputacja[, 2],
-         "prophet" = exp(forecast_imp$yhat), 
+         "prophet" = forecast_imp$yhat, 
          okres_2 = ifelse(okres != "przed epidemią", 
                           ifelse(okres == "po epidemii", "po epidemii (zbiór testowy)", NA),
                           "przed epidemią (zbiór treningowy)"))

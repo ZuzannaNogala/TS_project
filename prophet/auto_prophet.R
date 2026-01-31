@@ -4,7 +4,7 @@ source("set_up.R")
 prophet_models <- lapply(train_sets_ts, function(train_ts){
   prophet(data.frame(ds = as.Date(train_ts),
                      y = exp(train_ts)),
-    yearly.seasonality = TRUE, seasonality.mode = "multiplicative"
+          seasonality.mode = "multiplicative"
   )
 })
 
