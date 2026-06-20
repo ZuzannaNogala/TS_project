@@ -10,7 +10,7 @@ This project conducts a statistical analysis of the number of passengers using a
 
 The primary goal is to examine the evolution of the Polish aviation market—from its dynamic growth after joining the EU to the drastic collapse caused by the COVID-19 pandemic and the subsequent recovery phase.  The study evaluates how different data preparation strategies impact the ability of time series models to accurately reflect market dynamics and forecast the industry's condition for the next 5 years.  
 
-For more details, please refer to the full report (in Polish), $\texttt{Nogala_Pokora_TS_project.pdf}$, included in this repository.
+For more details, please refer to the full report (in Polish), [Nogala_Pokora_TS_project.pdf](https://github.com/ZuzannaNogala/TS_project/blob/main/Nogala_Pokora_TS_project.pdf), included in this repository.
 
 ## Dataset
 
@@ -18,7 +18,7 @@ For more details, please refer to the full report (in Polish), $\texttt{Nogala_P
 
 * The dataset includes statistics on both domestic and international (intra- and extra-EU) passenger traffic handled in Poland. 
 
-![](/Users/zuza/Downloads/data_rplot.png)
+![](./plots/data_rplot.png)
 
 ## Methodology
 
@@ -68,4 +68,4 @@ To evaluate the predictive capabilities of different models in the face of struc
 
 * Forecast: Predictions for the next five years are optimistic, showing steady growth and an increasing number of passengers. Airlines must, however, implement flexible resource planning to handle the widening gap between the summer peaks and the rest of the year.  
 
-![](/Users/zuza/Downloads/prophet_rplot2.png)
+![](./plots/prophet_rplot2.png)
